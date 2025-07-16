@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { Header } from "./layout/Header";
 import { QueryInput } from "./query/QueryInput";
-import { MultiAgentPanel } from "./agents/MultiAgentPanel";
+import { OrchestratorPanel } from "./agents/OrchestratorPanel";
 import { ModelSelector } from "./models/ModelSelector";
 import { ApiKeyManager } from "./api/ApiKeyManager";
 import { ResultsDisplay } from "./results/ResultsDisplay";
@@ -370,14 +370,9 @@ export const MakeItHeavyApp = () => {
           </TabsContent>
 
           <TabsContent value="agents" className="space-y-6">
-            <MultiAgentPanel
-              agents={agents}
-              isRunning={isRunning}
-              mode={mode}
-              onToggleMode={setMode}
-              onStart={handleStartAnalysis}
-              onStop={handleStopAnalysis}
-              onReset={handleResetAgents}
+            <OrchestratorPanel
+              query={query}
+              onComplete={setResults}
             />
           </TabsContent>
 
