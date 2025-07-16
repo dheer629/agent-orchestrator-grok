@@ -2,41 +2,75 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* Grok 4-inspired Design System - Dark futuristic theme with neon accents
+All colors MUST be HSL for proper theming.
 */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Dark theme base colors */
+    --background: 220 27% 8%;
+    --foreground: 210 40% 98%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 220 27% 10%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 220 27% 12%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Neon blue primary accent */
+    --primary: 217 91% 60%;
+    --primary-foreground: 220 27% 8%;
+    --primary-glow: 217 91% 70%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Dark secondary colors */
+    --secondary: 215 25% 15%;
+    --secondary-foreground: 210 40% 85%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted grays */
+    --muted: 215 25% 12%;
+    --muted-foreground: 215 15% 65%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Purple accent */
+    --accent: 270 70% 65%;
+    --accent-foreground: 220 27% 8%;
 
-    --destructive: 0 84.2% 60.2%;
+    /* Danger colors */
+    --destructive: 0 75% 60%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Borders and inputs */
+    --border: 215 25% 20%;
+    --input: 215 25% 15%;
+    --ring: 217 91% 60%;
 
-    --radius: 0.5rem;
+    /* Success colors */
+    --success: 142 76% 50%;
+    --success-foreground: 220 27% 8%;
+
+    /* Warning colors */
+    --warning: 38 92% 50%;
+    --warning-foreground: 220 27% 8%;
+
+    --radius: 0.75rem;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(270 70% 65%));
+    --gradient-secondary: linear-gradient(135deg, hsl(215 25% 15%), hsl(215 25% 20%));
+    --gradient-glow: linear-gradient(135deg, hsl(217 91% 60% / 0.2), hsl(270 70% 65% / 0.2));
+
+    /* Shadows */
+    --shadow-neon: 0 0 20px hsl(217 91% 60% / 0.3);
+    --shadow-glow: 0 0 40px hsl(217 91% 60% / 0.2);
+    --shadow-deep: 0 10px 30px hsl(220 27% 5% / 0.5);
+
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-glow: box-shadow 0.3s ease;
+
+    /* Glass effect */
+    --glass-bg: hsl(220 27% 12% / 0.8);
+    --glass-border: hsl(217 91% 60% / 0.2);
 
     --sidebar-background: 0 0% 98%;
 
@@ -100,6 +134,94 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+  }
+}
+
+@layer components {
+  /* Glass effect components */
+  .glass-panel {
+    @apply bg-[var(--glass-bg)] border border-[var(--glass-border)] backdrop-blur-md;
+  }
+
+  /* Neon glow effects */
+  .neon-glow {
+    box-shadow: var(--shadow-neon);
+    transition: var(--transition-glow);
+  }
+
+  .neon-glow:hover {
+    box-shadow: var(--shadow-glow);
+  }
+
+  /* Gradient backgrounds */
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+
+  .gradient-secondary {
+    background: var(--gradient-secondary);
+  }
+
+  .gradient-glow {
+    background: var(--gradient-glow);
+  }
+
+  /* Agent status indicators */
+  .agent-active {
+    @apply animate-pulse border-primary;
+    box-shadow: 0 0 15px hsl(var(--primary) / 0.5);
+  }
+
+  .agent-complete {
+    @apply border-success;
+    box-shadow: 0 0 10px hsl(var(--success) / 0.3);
+  }
+
+  .agent-error {
+    @apply border-destructive;
+    box-shadow: 0 0 10px hsl(var(--destructive) / 0.3);
+  }
+
+  /* Smooth transitions */
+  .transition-smooth {
+    transition: var(--transition-smooth);
+  }
+
+  /* Scrollbar styling */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-muted rounded;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-primary rounded;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-primary/80;
+  }
+}
+
+@layer utilities {
+  /* Text glow effects */
+  .text-glow {
+    text-shadow: 0 0 10px hsl(var(--primary) / 0.5);
+  }
+
+  .text-accent-glow {
+    text-shadow: 0 0 10px hsl(var(--accent) / 0.5);
+  }
+
+  /* Interactive hover effects */
+  .hover-lift {
+    @apply transition-smooth hover:scale-105 hover:shadow-lg;
+  }
+
+  .hover-glow {
+    @apply transition-smooth hover:shadow-[0_0_20px_hsl(var(--primary)/0.3)];
   }
 }
