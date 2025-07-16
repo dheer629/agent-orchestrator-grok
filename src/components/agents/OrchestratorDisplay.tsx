@@ -89,7 +89,7 @@ export const OrchestratorDisplay = ({
   };
 
   return (
-    <Card className={cn("glass-panel border-0 bg-black/95", className)}>
+    <Card className={cn("terminal-display shadow-large", className)}>
       <div className="p-6 font-mono">
         {/* Header */}
         <div className="mb-6">

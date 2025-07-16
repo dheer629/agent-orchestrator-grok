@@ -74,7 +74,8 @@ export default {
 			},
 			fontFamily: {
 				sans: ['Inter', 'system-ui', 'sans-serif'],
-				mono: ['JetBrains Mono', 'Monaco', 'Consolas', 'monospace']
+				mono: ['JetBrains Mono', 'Monaco', 'Consolas', 'monospace'],
+				display: ['Cal Sans', 'Inter', 'system-ui', 'sans-serif']
 			},
 			backgroundImage: {
 				'gradient-primary': 'var(--gradient-primary)',

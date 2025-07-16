@@ -51,15 +51,20 @@ export const QueryInput = ({
   };
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("space-y-6", className)}>
       <Card className={cn(
-        "glass-panel border transition-smooth",
-        isFocused ? "border-primary shadow-neon" : "border-border/50"
+        "surface-elevated border-0 transition-smooth",
+        isFocused && "shadow-premium border-primary/20"
       )}>
-        <div className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold">Query Input</h3>
+        <div className="p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary shadow-medium">
+              <Sparkles className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-display font-semibold text-lg">Query Input</h3>
+              <p className="text-sm text-muted-foreground">Enter your query for comprehensive multi-agent analysis</p>
+            </div>
           </div>
 
           <div className="space-y-4">
@@ -72,8 +77,8 @@ export const QueryInput = ({
                 onKeyDown={handleKeyPress}
                 placeholder="Enter your query for multi-agent analysis..."
                 className={cn(
-                  "min-h-[120px] resize-none bg-background/50 border-border/50 transition-smooth",
-                  "focus:border-primary focus:shadow-neon",
+                  "min-h-[140px] resize-none bg-background border-border/50 transition-smooth text-base leading-relaxed",
+                  "focus:border-primary focus:shadow-glow focus:ring-1 focus:ring-primary/20",
                   "custom-scrollbar"
                 )}
                 disabled={isLoading}
@@ -82,9 +87,9 @@ export const QueryInput = ({
               {value && (
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="icon-sm"
                   onClick={handleClear}
-                  className="absolute top-2 right-2 opacity-60 hover:opacity-100"
+                  className="absolute top-3 right-3 opacity-60 hover:opacity-100"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -92,19 +97,23 @@ export const QueryInput = ({
             </div>
 
             <div className="flex items-center justify-between">
-              <div className="text-xs text-muted-foreground">
-                Tip: Press <kbd className="px-1 py-0.5 bg-muted rounded text-xs">Ctrl+Enter</kbd> to submit
+              <div className="text-xs text-muted-foreground flex items-center gap-2">
+                <span>💡 Tip: Press</span>
+                <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono border border-border/50">
+                  Ctrl+Enter
+                </kbd>
+                <span>to submit</span>
               </div>
               
               <Button
                 onClick={handleSubmit}
                 disabled={!value.trim() || isLoading}
-                variant="neon"
-                size="sm"
-                className="hover-lift"
+                variant="premium"
+                size="lg"
+                className="shadow-large"
               >
                 <Send className="h-4 w-4" />
-                {isLoading ? "Processing..." : "Analyze"}
+                {isLoading ? "Processing..." : "Analyze Query"}
               </Button>
             </div>
           </div>
@@ -113,21 +122,23 @@ export const QueryInput = ({
 
       {/* Example Queries */}
       {!value && (
-        <Card className="glass-panel">
+        <Card className="surface-interactive border-0">
           <div className="p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <FileText className="h-4 w-4 text-accent" />
-              <h4 className="text-sm font-medium">Example Queries</h4>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10">
+                <FileText className="h-4 w-4 text-accent" />
+              </div>
+              <h4 className="font-medium">Example Queries</h4>
             </div>
             
-            <div className="grid gap-2">
+            <div className="grid gap-3">
               {exampleQueries.map((example, index) => (
                 <button
                   key={index}
                   onClick={() => handleExampleClick(example)}
                   className={cn(
-                    "text-left p-3 rounded-lg bg-background/30 border border-border/30",
-                    "hover:bg-primary/10 hover:border-primary/50 transition-smooth",
+                    "text-left p-4 rounded-lg bg-background border border-border/30 transition-smooth",
+                    "hover:bg-primary/5 hover:border-primary/30 hover-lift-gentle",
                     "text-sm text-muted-foreground hover:text-foreground"
                   )}
                 >
