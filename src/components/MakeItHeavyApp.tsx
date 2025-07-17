@@ -1,24 +1,19 @@
-import { useState, useCallback } from "react";
-import { Header } from "./layout/Header";
-import { QueryInput } from "./query/QueryInput";
-import { OrchestratorPanel } from "./agents/OrchestratorPanel";
-import { ModelSelector } from "./models/ModelSelector";
-import { ApiKeyManager } from "./api/ApiKeyManager";
-import { ResultsDisplay } from "./results/ResultsDisplay";
+import { useState, useCallback, useEffect } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Settings, Key, Download, Share2, RotateCcw } from "lucide-react";
+import { Header } from "@/components/layout/Header";
+import { QueryInput } from "@/components/query/QueryInput";
+import { OrchestratorPanel } from "@/components/agents/OrchestratorPanel";
+import { MultiAgentPanel } from "@/components/agents/MultiAgentPanel";
+import { ModelSelector } from "@/components/models/ModelSelector";
+import { ResultsDisplay } from "@/components/results/ResultsDisplay";
+import { ApiKeyManager } from "@/components/api/ApiKeyManager";
+import { ApiSettings } from "@/components/settings/ApiSettings";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Brain, 
-  Cpu, 
-  Settings, 
-  Zap, 
-  Network,
-  BarChart3,
-  FileText
-} from "lucide-react";
+import { apiClient, mapApiStatusToAppStatus, type OrchestrationResult } from "@/lib/api";
 
 // Mock data and types
 interface Agent {
@@ -110,35 +105,79 @@ export const MakeItHeavyApp = () => {
   const [modelAssignments, setModelAssignments] = useState<ModelAssignment[]>([]);
   const [mode, setMode] = useState<"single" | "multi">("multi");
   const [isRunning, setIsRunning] = useState(false);
-  const [results, setResults] = useState<any>(null);
-  const [totalTime, setTotalTime] = useState(0);
-  
-  // Dialog states
+  const [results, setResults] = useState<OrchestrationResult | null>(null);
+  const [totalTime, setTotalTime] = useState<number>(0);
   const [showApiKeyManager, setShowApiKeyManager] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [activeTab, setActiveTab] = useState("query");
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
+  const [apiUrl, setApiUrl] = useState("http://localhost:8000");
 
   const { toast } = useToast();
 
-  // Simulation functions
-  const simulateAgentExecution = useCallback(async (agentId: string) => {
-    const steps = [25, 50, 75, 100];
-    
-    for (const progress of steps) {
-      await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
-      
-      setAgents(prev => prev.map(agent => 
-        agent.id === agentId 
-          ? { 
-              ...agent, 
-              progress,
-              state: progress === 100 ? "complete" : "running",
-              output: progress === 100 ? `Analysis complete for: "${query}"\n\nThis agent has provided detailed insights based on its specialized perspective. The analysis includes comprehensive evaluation of the query parameters and contextual considerations.` : undefined
-            }
-          : agent
-      ));
-    }
-  }, [query]);
+  // Real-time status polling
+  useEffect(() => {
+    if (!currentTaskId || !isRunning) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const status = await apiClient.getOrchestrationStatus(currentTaskId);
+        
+        // Update agents with real status
+        setAgents(prev => prev.map(agent => {
+          const agentStatus = status.agents.find(a => a.agentId === agent.id);
+          if (agentStatus) {
+            return {
+              ...agent,
+              state: mapApiStatusToAppStatus(agentStatus.status),
+              progress: agentStatus.progress,
+              output: agentStatus.output
+            };
+          }
+          return agent;
+        }));
+
+        // Check if orchestration is complete
+        if (!status.isRunning) {
+          setIsRunning(false);
+          setTotalTime(status.elapsedTime);
+          
+          // Get final results
+          try {
+            const results = await apiClient.getOrchestrationResults(currentTaskId);
+            setResults(results);
+            setActiveTab("results");
+            
+            toast({
+              title: "Analysis Complete",
+              description: "Multi-agent orchestration finished successfully.",
+            });
+          } catch (error) {
+            console.error('Failed to get results:', error);
+            toast({
+              title: "Results Error",
+              description: "Failed to retrieve orchestration results.",
+              variant: "destructive",
+            });
+          }
+          
+          setCurrentTaskId(null);
+        }
+      } catch (error) {
+        console.error('Failed to poll status:', error);
+        setIsRunning(false);
+        setCurrentTaskId(null);
+        
+        toast({
+          title: "Connection Error",
+          description: "Lost connection to the Python API.",
+          variant: "destructive",
+        });
+      }
+    }, 1000);
+
+    return () => clearInterval(pollInterval);
+  }, [currentTaskId, isRunning, toast]);
 
   // Event handlers
   const handleStartAnalysis = useCallback(async () => {
@@ -163,7 +202,7 @@ export const MakeItHeavyApp = () => {
 
     setIsRunning(true);
     setResults(null);
-    const startTime = Date.now();
+    setCurrentTaskId(null);
 
     // Reset agents
     setAgents(prev => prev.map(agent => ({
@@ -173,73 +212,56 @@ export const MakeItHeavyApp = () => {
       output: undefined
     })));
 
-    // Start agent execution
-    const activeAgents = mode === "multi" ? agents : [agents[0]];
-    
-    // Simulate parallel execution
-    setTimeout(() => {
-      setAgents(prev => prev.map(agent => ({
-        ...agent,
-        state: activeAgents.find(a => a.id === agent.id) ? "running" : "idle"
-      })));
+    try {
+      // Prepare API keys for the backend
+      const apiKeyMap = apiKeys.reduce((acc, key) => {
+        acc[key.provider] = key.key;
+        return acc;
+      }, {} as Record<string, string>);
 
-      activeAgents.forEach(agent => {
-        simulateAgentExecution(agent.id);
-      });
-    }, 500);
-
-    // Simulate completion
-    setTimeout(() => {
-      setIsRunning(false);
-      setTotalTime((Date.now() - startTime) / 1000);
-      setResults({
-        query,
-        agentResults: activeAgents.map(agent => ({
-          agentId: agent.id,
-          agentName: agent.name,
-          content: `Detailed analysis from ${agent.name}:\n\nThis analysis provides comprehensive insights into the query "${query}". The agent has processed the information through its specialized lens and identified key patterns, implications, and actionable recommendations.`,
-          confidence: 75 + Math.random() * 20,
-          processingTime: 2 + Math.random() * 3,
-          model: agent.model
-        })),
-        synthesizedResult: {
-          summary: `Based on comprehensive multi-agent analysis of "${query}", this synthesis combines insights from ${activeAgents.length} specialized agents to provide a holistic perspective.`,
-          keyInsights: [
-            "Primary insight derived from cross-agent consensus",
-            "Secondary finding with high confidence rating",
-            "Tertiary observation requiring further investigation"
-          ],
-          recommendations: [
-            "Immediate action item based on analysis",
-            "Medium-term strategic consideration",
-            "Long-term monitoring recommendation"
-          ],
-          confidence: 85,
-          sources: activeAgents.map(a => a.name)
-        }
-      });
-      setActiveTab("results");
+      // Start orchestration via API
+      const response = await apiClient.startOrchestration(query, apiKeyMap);
+      setCurrentTaskId(response.taskId);
       
       toast({
-        title: "Analysis Complete",
-        description: `Successfully processed query using ${activeAgents.length} agent${activeAgents.length > 1 ? 's' : ''}.`,
+        title: "Analysis Started",
+        description: "Multi-agent orchestration is running...",
       });
-    }, 8000);
-  }, [query, apiKeys, agents, mode, simulateAgentExecution, toast]);
+      
+    } catch (error) {
+      console.error('Failed to start orchestration:', error);
+      setIsRunning(false);
+      
+      toast({
+        title: "Start Failed",
+        description: "Could not start orchestration. Check your API connection.",
+        variant: "destructive",
+      });
+    }
+  }, [query, apiKeys, toast]);
 
-  const handleStopAnalysis = useCallback(() => {
+  const handleStopAnalysis = useCallback(async () => {
+    if (currentTaskId) {
+      try {
+        await apiClient.stopOrchestration(currentTaskId);
+      } catch (error) {
+        console.error('Failed to stop orchestration:', error);
+      }
+    }
+    
     setIsRunning(false);
+    setCurrentTaskId(null);
     setAgents(prev => prev.map(agent => ({
       ...agent,
-      state: agent.state === "running" ? "error" : agent.state
+      state: "idle",
+      progress: 0
     })));
     
     toast({
       title: "Analysis Stopped",
-      description: "Agent execution has been terminated.",
-      variant: "destructive",
+      description: "Multi-agent analysis has been stopped.",
     });
-  }, [toast]);
+  }, [currentTaskId, toast]);
 
   const handleResetAgents = useCallback(() => {
     setAgents(prev => prev.map(agent => ({
@@ -249,6 +271,7 @@ export const MakeItHeavyApp = () => {
       output: undefined
     })));
     setResults(null);
+    setTotalTime(0);
   }, []);
 
   const handleAddApiKey = useCallback((provider: string, name: string, key: string) => {
@@ -257,16 +280,16 @@ export const MakeItHeavyApp = () => {
       name,
       provider,
       key,
-      isValid: true, // Simulate validation
+      isValid: false,
       isValidating: false,
-      models: mockModels.filter(m => m.provider === provider).map(m => m.name)
+      models: []
     };
     
     setApiKeys(prev => [...prev, newKey]);
     
     toast({
       title: "API Key Added",
-      description: `Successfully added ${name} for ${provider}.`,
+      description: `Added ${name} for ${provider}. Please validate the key.`,
     });
   }, [toast]);
 
@@ -280,23 +303,53 @@ export const MakeItHeavyApp = () => {
     });
   }, [toast]);
 
-  const handleValidateApiKey = useCallback((id: string) => {
-    setApiKeys(prev => prev.map(key => 
-      key.id === id ? { ...key, isValidating: true } : key
-    ));
+  const handleValidateApiKey = useCallback(async (id: string) => {
+    const keyToValidate = apiKeys.find(k => k.id === id);
+    if (!keyToValidate) return;
 
-    // Simulate validation
-    setTimeout(() => {
+    setApiKeys(prev => prev.map(key => 
+      key.id === id 
+        ? { ...key, isValidating: true }
+        : key
+    ));
+    
+    try {
+      const result = await apiClient.validateApiKey(keyToValidate.provider, keyToValidate.key);
+      
       setApiKeys(prev => prev.map(key => 
-        key.id === id ? { ...key, isValidating: false, isValid: true } : key
+        key.id === id 
+          ? { 
+              ...key, 
+              isValidating: false, 
+              isValid: result.isValid,
+              models: result.models || []
+            }
+          : key
       ));
       
       toast({
-        title: "API Key Validated",
-        description: "API key is valid and ready to use.",
+        title: result.isValid ? "Key Valid" : "Key Invalid",
+        description: result.isValid 
+          ? "API key validated successfully" 
+          : "API key validation failed",
+        variant: result.isValid ? "default" : "destructive",
       });
-    }, 2000);
-  }, [toast]);
+    } catch (error) {
+      console.error('Validation failed:', error);
+      
+      setApiKeys(prev => prev.map(key => 
+        key.id === id 
+          ? { ...key, isValidating: false, isValid: false, models: [] }
+          : key
+      ));
+      
+      toast({
+        title: "Validation Error",
+        description: "Could not validate API key. Check your connection.",
+        variant: "destructive",
+      });
+    }
+  }, [apiKeys, toast]);
 
   const handleAssignModel = useCallback((agentId: string, modelId: string, apiKeyId: string) => {
     setModelAssignments(prev => [
@@ -318,15 +371,30 @@ export const MakeItHeavyApp = () => {
   }, [toast]);
 
   const handleExportResults = useCallback((format: string) => {
+    if (!results) return;
+    
+    // In a real implementation, this would export the actual results
+    const exportData = JSON.stringify(results, null, 2);
+    const blob = new Blob([exportData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `orchestration-results.${format}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
     toast({
-      title: "Export Started",
-      description: `Exporting results in ${format.toUpperCase()} format...`,
+      title: "Export Complete",
+      description: `Results exported as ${format.toUpperCase()}`,
     });
-  }, [toast]);
+  }, [results, toast]);
 
   const handleShareResults = useCallback(() => {
+    // In a real implementation, this would create a shareable link
+    navigator.clipboard.writeText(window.location.href);
+    
     toast({
-      title: "Share Link Created",
+      title: "Share Link Copied",
       description: "Results link copied to clipboard.",
     });
   }, [toast]);
@@ -339,25 +407,13 @@ export const MakeItHeavyApp = () => {
         onOpenKeyManager={() => setShowApiKeyManager(true)}
       />
 
-      <main className="container mx-auto px-6 py-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="query" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Query
-            </TabsTrigger>
-            <TabsTrigger value="agents" className="flex items-center gap-2">
-              <Network className="h-4 w-4" />
-              Agents
-            </TabsTrigger>
-            <TabsTrigger value="models" className="flex items-center gap-2">
-              <Cpu className="h-4 w-4" />
-              Models
-            </TabsTrigger>
-            <TabsTrigger value="results" className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Results
-            </TabsTrigger>
+      <main className="container mx-auto px-6 py-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+          <TabsList className="grid w-full grid-cols-4 bg-background/50 backdrop-blur-sm">
+            <TabsTrigger value="query">Query</TabsTrigger>
+            <TabsTrigger value="orchestrator">Orchestrator</TabsTrigger>
+            <TabsTrigger value="models">Models</TabsTrigger>
+            <TabsTrigger value="results">Results</TabsTrigger>
           </TabsList>
 
           <TabsContent value="query" className="space-y-6">
@@ -369,11 +425,39 @@ export const MakeItHeavyApp = () => {
             />
           </TabsContent>
 
-          <TabsContent value="agents" className="space-y-6">
-            <OrchestratorPanel
-              query={query}
-              onComplete={setResults}
-            />
+          <TabsContent value="orchestrator" className="space-y-6">
+            <div className="grid gap-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-semibold">Multi-Agent Orchestrator</h2>
+                  <p className="text-muted-foreground">Monitor and control agent execution</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={isRunning ? "default" : "secondary"}>
+                    {isRunning ? "Running" : "Idle"}
+                  </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResetAgents}
+                    disabled={isRunning}
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Reset
+                  </Button>
+                </div>
+              </div>
+
+              <MultiAgentPanel
+                agents={agents}
+                isRunning={isRunning}
+                mode={mode}
+                onToggleMode={setMode}
+                onStart={handleStartAnalysis}
+                onStop={handleStopAnalysis}
+                onReset={handleResetAgents}
+              />
+            </div>
           </TabsContent>
 
           <TabsContent value="models" className="space-y-6">
@@ -390,31 +474,29 @@ export const MakeItHeavyApp = () => {
             {results ? (
               <ResultsDisplay
                 query={results.query}
-                agentResults={results.agentResults}
-                synthesizedResult={results.synthesizedResult}
+                agentResults={results.agentResults.map(result => ({
+                  ...result,
+                  confidence: result.metadata?.confidence || 0.8,
+                  processingTime: result.metadata?.executionTime || 5.2,
+                  model: agents.find(a => a.id === result.agentId)?.model || "Unknown"
+                }))}
                 isComplete={!isRunning}
                 totalTime={totalTime}
                 onExport={handleExportResults}
                 onShare={handleShareResults}
               />
             ) : (
-              <Card className="glass-panel">
-                <div className="p-12 text-center">
-                  <Brain className="h-16 w-16 text-muted-foreground mx-auto mb-6" />
-                  <h2 className="text-xl font-semibold mb-2">No Results Yet</h2>
-                  <p className="text-muted-foreground mb-6">
-                    Run an analysis to see results from your multi-agent system
-                  </p>
-                  <Button 
-                    variant="neon" 
-                    onClick={() => setActiveTab("query")}
-                    disabled={isRunning}
-                  >
-                    <Zap className="h-4 w-4" />
-                    Start Analysis
-                  </Button>
-                </div>
-              </Card>
+              <div className="text-center py-12">
+                <h3 className="text-lg font-medium text-muted-foreground mb-4">
+                  No results yet
+                </h3>
+                <p className="text-sm text-muted-foreground mb-6">
+                  Start an orchestration to see results
+                </p>
+                <Button onClick={() => setActiveTab("query")}>
+                  Go to Query
+                </Button>
+              </div>
             )}
           </TabsContent>
         </Tabs>
@@ -422,10 +504,10 @@ export const MakeItHeavyApp = () => {
 
       {/* API Key Manager Dialog */}
       <Dialog open={showApiKeyManager} onOpenChange={setShowApiKeyManager}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto custom-scrollbar glass-panel">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
+              <Key className="h-5 w-5" />
               API Key Management
             </DialogTitle>
           </DialogHeader>
@@ -441,16 +523,21 @@ export const MakeItHeavyApp = () => {
 
       {/* Settings Dialog */}
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
-        <DialogContent className="glass-panel">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Settings className="h-5 w-5" />
               Settings
             </DialogTitle>
           </DialogHeader>
-          
-          <div className="p-6">
-            <p className="text-muted-foreground">Settings panel coming soon...</p>
+          <div className="space-y-6">
+            <ApiSettings 
+              currentApiUrl={apiUrl}
+              onApiUrlChange={(url) => {
+                setApiUrl(url);
+                apiClient.setBaseUrl(url);
+              }}
+            />
           </div>
         </DialogContent>
       </Dialog>
