@@ -14,6 +14,7 @@ import { ApiKeyManager } from "@/components/api/ApiKeyManager";
 import { ApiSettings } from "@/components/settings/ApiSettings";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient, mapApiStatusToAppStatus, type OrchestrationResult } from "@/lib/api";
+import { modelManager, fetchModelsForProvider, type Model } from "@/lib/models";
 
 // Mock data and types
 interface Agent {
@@ -35,15 +36,6 @@ interface ApiKey {
   models: string[];
 }
 
-interface Model {
-  id: string;
-  name: string;
-  provider: string;
-  contextLength: number;
-  costPer1k: number;
-  speed: "fast" | "medium" | "slow";
-  quality: "high" | "medium" | "low";
-}
 
 interface ModelAssignment {
   agentId: string;
@@ -58,44 +50,8 @@ const defaultAgents: Agent[] = [
   { id: "4", name: "Domain Expert", state: "idle", progress: 0, model: "Claude-3-Opus" },
 ];
 
-const mockModels: Model[] = [
-  { 
-    id: "gpt-4.1-mini", 
-    name: "GPT-4.1-mini", 
-    provider: "openai", 
-    contextLength: 128000, 
-    costPer1k: 0.003, 
-    speed: "fast", 
-    quality: "high" 
-  },
-  { 
-    id: "gpt-4.1", 
-    name: "GPT-4.1", 
-    provider: "openai", 
-    contextLength: 128000, 
-    costPer1k: 0.03, 
-    speed: "medium", 
-    quality: "high" 
-  },
-  { 
-    id: "claude-3.5-sonnet", 
-    name: "Claude-3.5-Sonnet", 
-    provider: "anthropic", 
-    contextLength: 200000, 
-    costPer1k: 0.015, 
-    speed: "medium", 
-    quality: "high" 
-  },
-  { 
-    id: "claude-3-opus", 
-    name: "Claude-3-Opus", 
-    provider: "anthropic", 
-    contextLength: 200000, 
-    costPer1k: 0.075, 
-    speed: "slow", 
-    quality: "high" 
-  },
-];
+// Get models from the centralized model manager
+const availableModels = modelManager.getModels();
 
 export const MakeItHeavyApp = () => {
   // State management
@@ -274,23 +230,56 @@ export const MakeItHeavyApp = () => {
     setTotalTime(0);
   }, []);
 
-  const handleAddApiKey = useCallback((provider: string, name: string, key: string) => {
+  const handleAddApiKey = useCallback(async (provider: string, name: string, key: string) => {
     const newKey: ApiKey = {
       id: Date.now().toString(),
       name,
       provider,
       key,
       isValid: false,
-      isValidating: false,
+      isValidating: true,
       models: []
     };
     
     setApiKeys(prev => [...prev, newKey]);
-    
-    toast({
-      title: "API Key Added",
-      description: `Added ${name} for ${provider}. Please validate the key.`,
-    });
+
+    try {
+      // Validate the key and fetch models
+      const validation = await apiClient.validateApiKey(provider, key);
+      const availableModels = await fetchModelsForProvider(provider);
+      
+      setApiKeys(prev => prev.map(apiKey => 
+        apiKey.id === newKey.id 
+          ? { 
+              ...apiKey, 
+              isValid: validation.isValid, 
+              isValidating: false,
+              models: validation.models || availableModels 
+            }
+          : apiKey
+      ));
+
+      toast({
+        title: validation.isValid ? "API Key Valid" : "API Key Invalid",
+        description: validation.isValid ? 
+          `Successfully validated ${provider} API key with ${(validation.models || availableModels).length} models` : 
+          "The provided API key is not valid",
+        variant: validation.isValid ? "default" : "destructive"
+      });
+    } catch (error) {
+      console.error('Validation failed:', error);
+      setApiKeys(prev => prev.map(apiKey => 
+        apiKey.id === newKey.id 
+          ? { ...apiKey, isValid: false, isValidating: false }
+          : apiKey
+      ));
+
+      toast({
+        title: "Validation Error",
+        description: "Could not validate API key. It has been added but may need manual validation.",
+        variant: "destructive"
+      });
+    }
   }, [toast]);
 
   const handleRemoveApiKey = useCallback((id: string) => {
@@ -315,6 +304,7 @@ export const MakeItHeavyApp = () => {
     
     try {
       const result = await apiClient.validateApiKey(keyToValidate.provider, keyToValidate.key);
+      const availableModels = await fetchModelsForProvider(keyToValidate.provider);
       
       setApiKeys(prev => prev.map(key => 
         key.id === id 
@@ -322,7 +312,7 @@ export const MakeItHeavyApp = () => {
               ...key, 
               isValidating: false, 
               isValid: result.isValid,
-              models: result.models || []
+              models: result.models || availableModels
             }
           : key
       ));
@@ -330,7 +320,7 @@ export const MakeItHeavyApp = () => {
       toast({
         title: result.isValid ? "Key Valid" : "Key Invalid",
         description: result.isValid 
-          ? "API key validated successfully" 
+          ? `API key validated with ${(result.models || availableModels).length} models available` 
           : "API key validation failed",
         variant: result.isValid ? "default" : "destructive",
       });
@@ -357,7 +347,7 @@ export const MakeItHeavyApp = () => {
       { agentId, modelId, apiKeyId }
     ]);
     
-    const model = mockModels.find(m => m.id === modelId);
+    const model = modelManager.getModelById(modelId);
     if (model) {
       setAgents(prev => prev.map(agent =>
         agent.id === agentId ? { ...agent, model: model.name } : agent
@@ -462,11 +452,11 @@ export const MakeItHeavyApp = () => {
 
           <TabsContent value="models" className="space-y-6">
             <ModelSelector
-              models={mockModels}
+              models={availableModels}
               agents={agents}
               assignments={modelAssignments}
               onAssignModel={handleAssignModel}
-              availableApiKeys={apiKeys}
+              availableApiKeys={apiKeys.filter(key => key.isValid)}
             />
           </TabsContent>
 
