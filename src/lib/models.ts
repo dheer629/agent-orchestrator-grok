@@ -123,6 +123,62 @@ const STATIC_MODELS: Model[] = [
     speed: 'fast',
     quality: 'medium',
     description: 'Specialized coding model'
+  },
+  
+  // Cohere models
+  {
+    id: 'cohere/command-r-plus',
+    name: 'Command R+',
+    provider: 'cohere',
+    contextLength: 128000,
+    costPer1k: 0.003,
+    speed: 'medium',
+    quality: 'high',
+    description: 'Advanced reasoning and retrieval'
+  },
+  {
+    id: 'cohere/command-r',
+    name: 'Command R',
+    provider: 'cohere',
+    contextLength: 128000,
+    costPer1k: 0.0005,
+    speed: 'fast',
+    quality: 'medium',
+    description: 'Efficient command model'
+  },
+  
+  // Groq models
+  {
+    id: 'groq/llama-3-8b',
+    name: 'Llama 3 8B',
+    provider: 'groq',
+    contextLength: 8192,
+    costPer1k: 0.0001,
+    speed: 'fast',
+    quality: 'medium',
+    description: 'Ultra-fast inference'
+  },
+  {
+    id: 'groq/mixtral-8x7b',
+    name: 'Mixtral 8x7B',
+    provider: 'groq',
+    contextLength: 32768,
+    costPer1k: 0.0003,
+    speed: 'fast',
+    quality: 'high',
+    description: 'Fast mixture of experts'
+  },
+  
+  // Hugging Face models
+  {
+    id: 'huggingface/mistral-7b',
+    name: 'Mistral 7B',
+    provider: 'huggingface',
+    contextLength: 32768,
+    costPer1k: 0.0002,
+    speed: 'fast',
+    quality: 'medium',
+    description: 'Open-source efficiency'
   }
 ];
 

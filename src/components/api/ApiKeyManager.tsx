@@ -28,7 +28,7 @@ interface ApiKey {
 
 interface ApiKeyManagerProps {
   apiKeys: ApiKey[];
-  onAddKey: (provider: string, name: string, key: string) => void;
+  onAddKey: (provider: string, key: string) => void;
   onRemoveKey: (id: string) => void;
   onValidateKey: (id: string) => void;
   className?: string;
@@ -39,6 +39,9 @@ const providers = [
   { id: "anthropic", name: "Anthropic", color: "bg-orange-500" },
   { id: "openai", name: "OpenAI", color: "bg-green-500" },
   { id: "deepseek", name: "DeepSeek", color: "bg-purple-500" },
+  { id: "cohere", name: "Cohere", color: "bg-teal-500" },
+  { id: "groq", name: "Groq", color: "bg-red-500" },
+  { id: "huggingface", name: "Hugging Face", color: "bg-yellow-500" },
 ];
 
 export const ApiKeyManager = ({
@@ -49,13 +52,13 @@ export const ApiKeyManager = ({
   className
 }: ApiKeyManagerProps) => {
   const [isAdding, setIsAdding] = useState(false);
-  const [newKey, setNewKey] = useState({ provider: "", name: "", key: "" });
+  const [newKey, setNewKey] = useState({ provider: "", key: "" });
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
 
   const handleAddKey = () => {
-    if (newKey.provider && newKey.name && newKey.key) {
-      onAddKey(newKey.provider, newKey.name, newKey.key);
-      setNewKey({ provider: "", name: "", key: "" });
+    if (newKey.provider && newKey.key) {
+      onAddKey(newKey.provider, newKey.key);
+      setNewKey({ provider: "", key: "" });
       setIsAdding(false);
     }
   };
@@ -110,16 +113,6 @@ export const ApiKeyManager = ({
                     </button>
                   ))}
                 </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">Name</label>
-                <Input
-                  value={newKey.name}
-                  onChange={(e) => setNewKey(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="e.g., Primary Key, Development, etc."
-                  className="bg-background/50"
-                />
               </div>
 
               <div>

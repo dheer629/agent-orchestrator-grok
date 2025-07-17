@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Cpu, Zap, Brain, Sparkles, Check, Settings } from "lucide-react";
+import { ModelDropdown } from "./ModelDropdown";
 import { cn } from "@/lib/utils";
 
 interface Model {
@@ -129,21 +130,12 @@ export const ModelSelector = ({
 
             <div>
               <label className="text-sm font-medium mb-2 block">Model</label>
-              <Select value={selectedModel} onValueChange={setSelectedModel}>
-                <SelectTrigger className="bg-background/50">
-                  <SelectValue placeholder="Select model" />
-                </SelectTrigger>
-                <SelectContent>
-                  {models.map((model) => (
-                    <SelectItem key={model.id} value={model.id}>
-                      <div className="flex items-center gap-2">
-                        {getSpeedIcon(model.speed)}
-                        <span>{model.name}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ModelDropdown
+                selectedProvider={selectedAgent ? agents.find(a => a.id === selectedAgent)?.name.toLowerCase() : undefined}
+                selectedModel={selectedModel}
+                onModelSelect={setSelectedModel}
+                availableModels={models}
+              />
             </div>
 
             <div>

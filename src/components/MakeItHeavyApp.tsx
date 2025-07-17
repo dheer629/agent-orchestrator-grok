@@ -230,7 +230,10 @@ export const MakeItHeavyApp = () => {
     setTotalTime(0);
   }, []);
 
-  const handleAddApiKey = useCallback(async (provider: string, name: string, key: string) => {
+  const handleAddApiKey = useCallback(async (provider: string, key: string) => {
+    // Generate a default name based on provider
+    const name = `${provider.charAt(0).toUpperCase() + provider.slice(1)} Key`;
+    
     const newKey: ApiKey = {
       id: Date.now().toString(),
       name,
