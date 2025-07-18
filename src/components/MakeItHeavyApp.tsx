@@ -8,7 +8,7 @@ import { Header } from "@/components/layout/Header";
 import { QueryInput } from "@/components/query/QueryInput";
 import { OrchestratorPanel } from "@/components/agents/OrchestratorPanel";
 import { MultiAgentPanel } from "@/components/agents/MultiAgentPanel";
-import { ModelSelector } from "@/components/models/ModelSelector";
+import { ModelDropdown } from "@/components/models/ModelDropdown";
 import { ResultsDisplay } from "@/components/results/ResultsDisplay";
 import { ApiKeyManager } from "@/components/api/ApiKeyManager";
 import { ApiSettings } from "@/components/settings/ApiSettings";
@@ -56,6 +56,8 @@ const availableModels = modelManager.getModels();
 export const MakeItHeavyApp = () => {
   // State management
   const [query, setQuery] = useState("");
+  const [systemPrompt, setSystemPrompt] = useState("");
+  const [selectedModel, setSelectedModel] = useState("");
   const [agents, setAgents] = useState<Agent[]>(defaultAgents);
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [modelAssignments, setModelAssignments] = useState<ModelAssignment[]>([]);
@@ -402,20 +404,41 @@ export const MakeItHeavyApp = () => {
 
       <main className="container mx-auto px-6 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="grid w-full grid-cols-4 bg-background/50 backdrop-blur-sm">
+          <TabsList className="grid w-full grid-cols-3 bg-background/50 backdrop-blur-sm">
             <TabsTrigger value="query">Query</TabsTrigger>
             <TabsTrigger value="orchestrator">Orchestrator</TabsTrigger>
-            <TabsTrigger value="models">Models</TabsTrigger>
             <TabsTrigger value="results">Results</TabsTrigger>
           </TabsList>
 
           <TabsContent value="query" className="space-y-6">
-            <QueryInput
-              value={query}
-              onChange={setQuery}
-              onSubmit={handleStartAnalysis}
-              isLoading={isRunning}
-            />
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Model Selection</label>
+                  <ModelDropdown
+                    selectedModel={selectedModel}
+                    onModelSelect={setSelectedModel}
+                    availableModels={availableModels}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">System Prompt</label>
+                  <textarea
+                    value={systemPrompt}
+                    onChange={(e) => setSystemPrompt(e.target.value)}
+                    placeholder="Enter system prompt for the agents..."
+                    className="w-full min-h-[80px] p-3 rounded-lg border bg-background/50 text-sm"
+                  />
+                </div>
+              </div>
+              
+              <QueryInput
+                value={query}
+                onChange={setQuery}
+                onSubmit={handleStartAnalysis}
+                isLoading={isRunning}
+              />
+            </div>
           </TabsContent>
 
           <TabsContent value="orchestrator" className="space-y-6">
@@ -453,15 +476,6 @@ export const MakeItHeavyApp = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="models" className="space-y-6">
-            <ModelSelector
-              models={availableModels}
-              agents={agents}
-              assignments={modelAssignments}
-              onAssignModel={handleAssignModel}
-              availableApiKeys={apiKeys.filter(key => key.isValid)}
-            />
-          </TabsContent>
 
           <TabsContent value="results" className="space-y-6">
             {results ? (
