@@ -28,7 +28,7 @@ interface ModelSelectorProps {
   agents: Array<{ id: string; name: string }>;
   assignments: ModelAssignment[];
   onAssignModel: (agentId: string, modelId: string, apiKeyId: string) => void;
-  availableApiKeys: Array<{ id: string; name: string; provider: string }>;
+  availableApiKeys: Array<{ id: string; name: string; provider: string; isValid: boolean }>;
   className?: string;
 }
 
@@ -131,10 +131,10 @@ export const ModelSelector = ({
             <div>
               <label className="text-sm font-medium mb-2 block">Model</label>
               <ModelDropdown
-                selectedProvider={selectedAgent ? agents.find(a => a.id === selectedAgent)?.name.toLowerCase() : undefined}
                 selectedModel={selectedModel}
                 onModelSelect={setSelectedModel}
                 availableModels={models}
+                availableApiKeys={availableApiKeys}
               />
             </div>
 

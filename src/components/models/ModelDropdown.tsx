@@ -7,10 +7,10 @@ import { fetchModelsForProvider } from "@/lib/models";
 import { cn } from "@/lib/utils";
 
 interface ModelDropdownProps {
-  selectedProvider?: string;
   selectedModel?: string;
   onModelSelect: (modelId: string) => void;
   availableModels: Model[];
+  availableApiKeys: Array<{ id: string; provider: string; isValid: boolean }>;
   className?: string;
 }
 
@@ -33,32 +33,40 @@ const getQualityColor = (quality: string) => {
 };
 
 export function ModelDropdown({
-  selectedProvider,
   selectedModel,
   onModelSelect,
   availableModels,
+  availableApiKeys,
   className
 }: ModelDropdownProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [providerModels, setProviderModels] = useState<string[]>([]);
+  const [realtimeModels, setRealtimeModels] = useState<string[]>([]);
 
-  // Filter models by selected provider
-  const filteredModels = selectedProvider 
-    ? availableModels.filter(model => model.provider === selectedProvider)
-    : availableModels;
+  // Get unique providers from valid API keys
+  const validProviders = availableApiKeys
+    .filter(key => key.isValid)
+    .map(key => key.provider);
 
-  // Fetch real-time models when provider changes
+  // Filter models by providers that have valid API keys
+  const filteredModels = availableModels.filter(model => 
+    validProviders.includes(model.provider)
+  );
+
+  // Fetch real-time models for all valid providers
   useEffect(() => {
-    if (selectedProvider) {
+    if (validProviders.length > 0) {
       setIsLoading(true);
-      fetchModelsForProvider(selectedProvider)
-        .then(models => {
-          setProviderModels(models);
+      Promise.all(
+        validProviders.map(provider => fetchModelsForProvider(provider))
+      )
+        .then(results => {
+          const allModels = results.flat();
+          setRealtimeModels(allModels);
         })
         .catch(console.error)
         .finally(() => setIsLoading(false));
     }
-  }, [selectedProvider]);
+  }, [validProviders.join(',')]);  // Use join to track provider changes
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -94,9 +102,9 @@ export function ModelDropdown({
           
           {filteredModels.length === 0 && !isLoading && (
             <div className="p-4 text-center text-muted-foreground text-sm">
-              {selectedProvider ? 
-                `No models available for ${selectedProvider}` : 
-                'Select a provider first'
+              {validProviders.length === 0 ? 
+                'Add and validate API keys first' :
+                'No models available for selected providers'
               }
             </div>
           )}
@@ -105,10 +113,10 @@ export function ModelDropdown({
       
       {selectedModel && (
         <div className="text-xs text-muted-foreground">
-          {providerModels.length > 0 && (
+          {realtimeModels.length > 0 && (
             <p>
               <Sparkles className="h-3 w-3 inline mr-1" />
-              {providerModels.length} real-time models available
+              {realtimeModels.length} real-time models available
             </p>
           )}
         </div>

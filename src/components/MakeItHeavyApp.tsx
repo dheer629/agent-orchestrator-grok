@@ -419,6 +419,7 @@ export const MakeItHeavyApp = () => {
                     selectedModel={selectedModel}
                     onModelSelect={setSelectedModel}
                     availableModels={availableModels}
+                    availableApiKeys={apiKeys}
                   />
                 </div>
                 <div>
