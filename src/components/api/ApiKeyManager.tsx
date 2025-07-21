@@ -154,21 +154,35 @@ export const ApiKeyManager = ({
                 />
               </div>
 
-              {newKey.provider && (
+              {newKey.provider && newKey.key && (
                 <div>
                   <label className="text-sm font-medium mb-2 block">
                     Select Model 
                     {isValidatingKey && <Loader2 className="h-3 w-3 animate-spin inline ml-2" />}
                   </label>
-                  <ModelDropdown
-                    selectedModel={selectedModel}
-                    onModelSelect={onModelSelect}
-                    availableModels={availableModels.filter(model => model.provider === newKey.provider)}
-                    availableApiKeys={[]} // We'll validate after adding
-                  />
+                  <div className="relative">
+                    <select
+                      value={selectedModel || ''}
+                      onChange={(e) => onModelSelect(e.target.value)}
+                      className="w-full p-3 rounded-lg border bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-primary z-50"
+                      style={{ backgroundColor: 'var(--background)', zIndex: 50 }}
+                      disabled={isValidatingKey}
+                    >
+                      <option value="">
+                        {isValidatingKey ? "Fetching models..." : "Select a model..."}
+                      </option>
+                      {availableModels
+                        .filter(model => model.provider === newKey.provider)
+                        .map(model => (
+                          <option key={model.id} value={model.id}>
+                            {model.name} - ${model.costPer1k.toFixed(4)}/1K tokens ({model.speed} • {model.quality})
+                          </option>
+                        ))}
+                    </select>
+                  </div>
                   {providerModels.length > 0 && (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {providerModels.length} models detected for {newKey.provider}
+                    <p className="text-xs text-success mt-2">
+                      ✅ {providerModels.length} models detected for {newKey.provider}
                     </p>
                   )}
                 </div>
@@ -179,9 +193,16 @@ export const ApiKeyManager = ({
                   onClick={handleAddKey} 
                   variant="neon" 
                   size="sm"
-                  disabled={!newKey.provider || !newKey.key}
+                  disabled={!newKey.provider || !newKey.key || isValidatingKey}
                 >
-                  Add Key & Configure Model
+                  {isValidatingKey ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin mr-2" />
+                      Validating...
+                    </>
+                  ) : (
+                    'Add Key & Configure Model'
+                  )}
                 </Button>
                 <Button onClick={() => setIsAdding(false)} variant="ghost" size="sm">
                   Cancel
@@ -269,7 +290,24 @@ export const ApiKeyManager = ({
                   {apiKey.models.length > 0 && (
                     <div className="mb-4">
                       <p className="text-sm font-medium mb-2">Available Models:</p>
-                      <div className="flex flex-wrap gap-1">
+                      <div className="relative">
+                        <select
+                          value={selectedModel || ''}
+                          onChange={(e) => onModelSelect(e.target.value)}
+                          className="w-full p-2 rounded-lg border bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-primary z-50"
+                          style={{ backgroundColor: 'var(--background)', zIndex: 50 }}
+                        >
+                          <option value="">Select a model...</option>
+                          {availableModels
+                            .filter(model => model.provider === apiKey.provider)
+                            .map(model => (
+                              <option key={model.id} value={model.id}>
+                                {model.name} - ${model.costPer1k.toFixed(4)}/1K ({model.quality})
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-2">
                         {apiKey.models.slice(0, 5).map((model) => (
                           <Badge key={model} variant="outline" className="text-xs">
                             {model}
