@@ -232,7 +232,7 @@ export const MakeItHeavyApp = () => {
     setTotalTime(0);
   }, []);
 
-  const handleAddApiKey = useCallback(async (provider: string, key: string) => {
+  const handleAddApiKey = useCallback(async (provider: string, key: string, selectedModelId?: string) => {
     // Generate a default name based on provider
     const name = `${provider.charAt(0).toUpperCase() + provider.slice(1)} Key`;
     
@@ -247,6 +247,11 @@ export const MakeItHeavyApp = () => {
     };
     
     setApiKeys(prev => [...prev, newKey]);
+    
+    // Set the selected model if provided
+    if (selectedModelId) {
+      setSelectedModel(selectedModelId);
+    }
 
     try {
       // Validate the key and fetch models
@@ -412,25 +417,14 @@ export const MakeItHeavyApp = () => {
 
           <TabsContent value="query" className="space-y-6">
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Model Selection</label>
-                  <ModelDropdown
-                    selectedModel={selectedModel}
-                    onModelSelect={setSelectedModel}
-                    availableModels={availableModels}
-                    availableApiKeys={apiKeys}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-2 block">System Prompt</label>
-                  <textarea
-                    value={systemPrompt}
-                    onChange={(e) => setSystemPrompt(e.target.value)}
-                    placeholder="Enter system prompt for the agents..."
-                    className="w-full min-h-[80px] p-3 rounded-lg border bg-background/50 text-sm"
-                  />
-                </div>
+              <div className="mb-6">
+                <label className="text-sm font-medium mb-2 block">System Prompt</label>
+                <textarea
+                  value={systemPrompt}
+                  onChange={(e) => setSystemPrompt(e.target.value)}
+                  placeholder="Enter system prompt for the agents..."
+                  className="w-full min-h-[80px] p-3 rounded-lg border bg-background/50 text-sm"
+                />
               </div>
               
               <QueryInput
@@ -525,6 +519,9 @@ export const MakeItHeavyApp = () => {
             onAddKey={handleAddApiKey}
             onRemoveKey={handleRemoveApiKey}
             onValidateKey={handleValidateApiKey}
+            availableModels={availableModels}
+            selectedModel={selectedModel}
+            onModelSelect={setSelectedModel}
           />
         </DialogContent>
       </Dialog>

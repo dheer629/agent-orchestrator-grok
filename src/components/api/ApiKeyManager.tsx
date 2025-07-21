@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -12,9 +12,13 @@ import {
   CheckCircle, 
   AlertCircle,
   Settings,
-  ExternalLink
+  ExternalLink,
+  Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ModelDropdown } from "@/components/models/ModelDropdown";
+import { Model } from "@/lib/models";
+import { fetchModelsForProvider } from "@/lib/models";
 
 interface ApiKey {
   id: string;
@@ -28,9 +32,12 @@ interface ApiKey {
 
 interface ApiKeyManagerProps {
   apiKeys: ApiKey[];
-  onAddKey: (provider: string, key: string) => void;
+  onAddKey: (provider: string, key: string, selectedModel?: string) => void;
   onRemoveKey: (id: string) => void;
   onValidateKey: (id: string) => void;
+  availableModels: Model[];
+  selectedModel?: string;
+  onModelSelect: (modelId: string) => void;
   className?: string;
 }
 
@@ -49,16 +56,37 @@ export const ApiKeyManager = ({
   onAddKey,
   onRemoveKey,
   onValidateKey,
+  availableModels,
+  selectedModel,
+  onModelSelect,
   className
 }: ApiKeyManagerProps) => {
   const [isAdding, setIsAdding] = useState(false);
   const [newKey, setNewKey] = useState({ provider: "", key: "" });
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
+  const [isValidatingKey, setIsValidatingKey] = useState(false);
+  const [providerModels, setProviderModels] = useState<string[]>([]);
+
+  // Fetch models when provider changes
+  useEffect(() => {
+    if (newKey.provider) {
+      setIsValidatingKey(true);
+      fetchModelsForProvider(newKey.provider)
+        .then(models => {
+          setProviderModels(models);
+        })
+        .catch(console.error)
+        .finally(() => setIsValidatingKey(false));
+    } else {
+      setProviderModels([]);
+    }
+  }, [newKey.provider]);
 
   const handleAddKey = () => {
     if (newKey.provider && newKey.key) {
-      onAddKey(newKey.provider, newKey.key);
+      onAddKey(newKey.provider, newKey.key, selectedModel);
       setNewKey({ provider: "", key: "" });
+      setProviderModels([]);
       setIsAdding(false);
     }
   };
@@ -126,9 +154,34 @@ export const ApiKeyManager = ({
                 />
               </div>
 
+              {newKey.provider && (
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Select Model 
+                    {isValidatingKey && <Loader2 className="h-3 w-3 animate-spin inline ml-2" />}
+                  </label>
+                  <ModelDropdown
+                    selectedModel={selectedModel}
+                    onModelSelect={onModelSelect}
+                    availableModels={availableModels.filter(model => model.provider === newKey.provider)}
+                    availableApiKeys={[]} // We'll validate after adding
+                  />
+                  {providerModels.length > 0 && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {providerModels.length} models detected for {newKey.provider}
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className="flex gap-2">
-                <Button onClick={handleAddKey} variant="neon" size="sm">
-                  Add Key
+                <Button 
+                  onClick={handleAddKey} 
+                  variant="neon" 
+                  size="sm"
+                  disabled={!newKey.provider || !newKey.key}
+                >
+                  Add Key & Configure Model
                 </Button>
                 <Button onClick={() => setIsAdding(false)} variant="ghost" size="sm">
                   Cancel
