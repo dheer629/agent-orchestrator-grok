@@ -111,70 +111,21 @@ class PythonApiClient {
   }
 
   /**
-   * Validate API keys
+   * Validate API keys using real provider APIs
    */
   async validateApiKey(provider: string, apiKey: string): Promise<{ isValid: boolean; models?: string[] }> {
-    try {
-      const response = await fetch(`${this.baseUrl}/validate-key`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          provider,
-          apiKey,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to validate API key: ${response.statusText}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      // If Python API isn't available, do basic validation
-      console.warn('Python API not available, using fallback validation');
-      return this.fallbackValidateApiKey(provider, apiKey);
-    }
+    // Import dynamically to avoid circular dependencies
+    const { validateApiKey } = await import('./providers');
+    return validateApiKey(provider, apiKey);
   }
 
   /**
-   * Fallback validation when Python API isn't available
+   * Get available models for a provider using real API
    */
-  private fallbackValidateApiKey(provider: string, apiKey: string): { isValid: boolean; models?: string[] } {
-    // Basic key format validation
-    const isValid = apiKey.length > 10 && 
-                   (apiKey.startsWith('sk-') || 
-                    apiKey.startsWith('or-') || 
-                    apiKey.startsWith('claude-') ||
-                    !!apiKey.match(/^[a-zA-Z0-9\-_]+$/));
-    
-    // Return mock models for each provider
-    const modelMap: Record<string, string[]> = {
-      openrouter: ['gpt-4o', 'claude-3-sonnet', 'llama-3-70b'],
-      openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-3.5-turbo'],
-      anthropic: ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku'],
-      deepseek: ['deepseek-chat', 'deepseek-coder']
-    };
-
-    return {
-      isValid,
-      models: isValid ? (modelMap[provider] || []) : []
-    };
-  }
-
-  /**
-   * Get available models for a provider
-   */
-  async getAvailableModels(provider: string): Promise<string[]> {
-    const response = await fetch(`${this.baseUrl}/models/${provider}`);
-    
-    if (!response.ok) {
-      throw new Error(`Failed to get models: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data.models || [];
+  async getAvailableModels(provider: string, apiKey: string): Promise<string[]> {
+    // Import dynamically to avoid circular dependencies
+    const { fetchModelsForProvider } = await import('./providers');
+    return fetchModelsForProvider(provider, apiKey);
   }
 
   /**

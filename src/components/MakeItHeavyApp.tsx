@@ -337,7 +337,7 @@ export const MakeItHeavyApp = () => {
     try {
       // Validate the key and fetch models
       const validation = await apiClient.validateApiKey(provider, key);
-      const availableModels = await fetchModelsForProvider(provider);
+      const availableModels = await fetchModelsForProvider(provider, key);
       
       setApiKeys(prev => prev.map(apiKey => 
         apiKey.id === newKey.id 
@@ -395,7 +395,7 @@ export const MakeItHeavyApp = () => {
     
     try {
       const result = await apiClient.validateApiKey(keyToValidate.provider, keyToValidate.key);
-      const availableModels = await fetchModelsForProvider(keyToValidate.provider);
+      const availableModels = await fetchModelsForProvider(keyToValidate.provider, keyToValidate.key);
       
       setApiKeys(prev => prev.map(key => 
         key.id === id 

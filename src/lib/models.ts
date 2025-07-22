@@ -2,7 +2,7 @@
  * Centralized model management and fetching
  */
 
-import { apiClient } from './api';
+import { fetchModelsForProvider as fetchProviderModels } from './providers';
 
 export interface Model {
   id: string;
@@ -210,28 +210,33 @@ class ModelManager {
   /**
    * Fetch available models from API and update internal list
    */
-  async fetchModelsForProvider(provider: string): Promise<string[]> {
+  async fetchModelsForProvider(provider: string, apiKey?: string): Promise<string[]> {
     // Avoid duplicate requests
-    if (this.fetchPromises.has(provider)) {
-      return this.fetchPromises.get(provider)!;
+    const cacheKey = `${provider}:${apiKey || 'default'}`;
+    if (this.fetchPromises.has(cacheKey)) {
+      return this.fetchPromises.get(cacheKey)!;
     }
 
-    const fetchPromise = this.doFetchModels(provider);
-    this.fetchPromises.set(provider, fetchPromise);
+    const fetchPromise = this.doFetchModels(provider, apiKey);
+    this.fetchPromises.set(cacheKey, fetchPromise);
 
     try {
       const models = await fetchPromise;
       this.updateModelsFromApi(provider, models);
       return models;
     } finally {
-      this.fetchPromises.delete(provider);
+      this.fetchPromises.delete(cacheKey);
     }
   }
 
-  private async doFetchModels(provider: string): Promise<string[]> {
+  private async doFetchModels(provider: string, apiKey?: string): Promise<string[]> {
     try {
-      const models = await apiClient.getAvailableModels(provider);
-      return models;
+      if (apiKey) {
+        const models = await fetchProviderModels(provider, apiKey);
+        return models;
+      }
+      // Return static models as fallback when no API key
+      return this.getModelsByProvider(provider).map(m => m.name);
     } catch (error) {
       console.warn(`Failed to fetch models for ${provider}:`, error);
       // Return static models as fallback
@@ -280,6 +285,6 @@ export function getModelById(id: string): Model | undefined {
   return modelManager.getModelById(id);
 }
 
-export async function fetchModelsForProvider(provider: string): Promise<string[]> {
-  return modelManager.fetchModelsForProvider(provider);
+export async function fetchModelsForProvider(provider: string, apiKey?: string): Promise<string[]> {
+  return modelManager.fetchModelsForProvider(provider, apiKey);
 }

@@ -67,11 +67,11 @@ export const ApiKeyManager = ({
   const [isValidatingKey, setIsValidatingKey] = useState(false);
   const [providerModels, setProviderModels] = useState<string[]>([]);
 
-  // Fetch models when provider changes
+  // Fetch models when provider and key change
   useEffect(() => {
-    if (newKey.provider) {
+    if (newKey.provider && newKey.key && newKey.key.length > 10) {
       setIsValidatingKey(true);
-      fetchModelsForProvider(newKey.provider)
+      fetchModelsForProvider(newKey.provider, newKey.key)
         .then(models => {
           setProviderModels(models);
         })
@@ -80,7 +80,7 @@ export const ApiKeyManager = ({
     } else {
       setProviderModels([]);
     }
-  }, [newKey.provider]);
+  }, [newKey.provider, newKey.key]);
 
   const handleAddKey = () => {
     if (newKey.provider && newKey.key) {
