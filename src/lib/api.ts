@@ -43,41 +43,78 @@ class PythonApiClient {
   }
 
   /**
-   * Start a new orchestration task
+   * Start a new orchestration task (frontend simulation)
    */
   async startOrchestration(query: string, apiKeys: Record<string, string>): Promise<{ taskId: string }> {
-    this.abortController = new AbortController();
+    // Generate a unique task ID for simulation
+    const taskId = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
-    const response = await fetch(`${this.baseUrl}/orchestrate/start`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        query,
-        apiKeys,
-      }),
-      signal: this.abortController.signal,
+    // Store the task for simulation
+    this.simulatedTasks.set(taskId, {
+      query,
+      apiKeys,
+      startTime: new Date().toISOString(),
+      status: 'initializing',
+      agents: this.getDefaultAgents().map(agent => ({
+        agentId: agent.id,
+        status: 'queued' as const,
+        progress: 0
+      }))
     });
 
-    if (!response.ok) {
-      throw new Error(`Failed to start orchestration: ${response.statusText}`);
-    }
+    return { taskId };
+  }
 
-    return await response.json();
+  private simulatedTasks = new Map<string, any>();
+  
+  private getDefaultAgents() {
+    return [
+      { id: 'researcher', name: 'Research Agent' },
+      { id: 'analyzer', name: 'Analysis Agent' },
+      { id: 'synthesizer', name: 'Synthesis Agent' },
+      { id: 'validator', name: 'Validation Agent' }
+    ];
   }
 
   /**
-   * Get the current status of an orchestration task
+   * Get the current status of an orchestration task (simulation)
    */
   async getOrchestrationStatus(taskId: string): Promise<OrchestrationStatus> {
-    const response = await fetch(`${this.baseUrl}/orchestrate/status/${taskId}`);
-    
-    if (!response.ok) {
-      throw new Error(`Failed to get status: ${response.statusText}`);
+    const task = this.simulatedTasks.get(taskId);
+    if (!task) {
+      throw new Error('Task not found');
     }
 
-    return await response.json();
+    // Simulate progress
+    const elapsedTime = Date.now() - new Date(task.startTime).getTime();
+    const progressStep = Math.min(elapsedTime / 100, 100); // Faster progression
+
+    task.agents.forEach((agent: any, index: number) => {
+      const agentDelay = index * 1000; // Stagger agent starts
+      if (elapsedTime > agentDelay) {
+        const agentProgress = Math.min((elapsedTime - agentDelay) / 50, 100);
+        agent.progress = agentProgress;
+        
+        if (agentProgress < 30) {
+          agent.status = 'initializing';
+        } else if (agentProgress < 100) {
+          agent.status = 'processing';
+        } else {
+          agent.status = 'completed';
+          agent.output = `${this.getDefaultAgents()[index]?.name} completed analysis for: "${task.query}"`;
+        }
+      }
+    });
+
+    const allCompleted = task.agents.every((a: any) => a.status === 'completed');
+    
+    return {
+      isRunning: !allCompleted,
+      startTime: task.startTime,
+      elapsedTime: Math.floor(elapsedTime / 1000),
+      agents: task.agents,
+      error: undefined
+    };
   }
 
   /**

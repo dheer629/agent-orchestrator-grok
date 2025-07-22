@@ -78,25 +78,30 @@ export function ModelDropdown({
           {isLoading && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
         </SelectTrigger>
         <SelectContent 
-          className="bg-background border-border max-h-[300px] overflow-y-auto z-[9999]" 
+          className="bg-popover border-border max-h-[400px] overflow-y-auto z-[99999] min-w-[400px]" 
           position="popper"
-          sideOffset={4}
+          sideOffset={8}
+          align="start"
+          avoidCollisions={true}
         >
           {filteredModels.map((model) => (
-            <SelectItem key={model.id} value={model.id} className="cursor-pointer">
-              <div className="flex items-center justify-between w-full">
-                <div className="flex items-center gap-2">
+            <SelectItem key={model.id} value={model.id} className="cursor-pointer min-h-[60px] p-3">
+              <div className="flex items-center justify-between w-full min-w-[350px]">
+                <div className="flex items-center gap-3 flex-1">
                   {getSpeedIcon(model.speed)}
-                  <span className="font-medium">{model.name}</span>
+                  <div className="flex flex-col items-start">
+                    <span className="font-medium text-sm">{model.name}</span>
+                    <span className="text-xs text-muted-foreground">{model.provider}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 ml-4">
+                <div className="flex items-center gap-3 ml-4">
                   <Badge 
                     variant="outline" 
                     className={cn("text-xs", getQualityColor(model.quality))}
                   >
                     {model.quality}
                   </Badge>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
                     ${model.costPer1k.toFixed(4)}/1K
                   </span>
                 </div>
