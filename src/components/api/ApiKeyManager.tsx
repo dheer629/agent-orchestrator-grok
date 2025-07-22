@@ -164,8 +164,7 @@ export const ApiKeyManager = ({
                     <select
                       value={selectedModel || ''}
                       onChange={(e) => onModelSelect(e.target.value)}
-                      className="w-full p-3 rounded-lg border bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-primary z-50"
-                      style={{ backgroundColor: 'var(--background)', zIndex: 50 }}
+                      className="w-full p-3 rounded-lg border bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-primary relative z-[9998]"
                       disabled={isValidatingKey}
                     >
                       <option value="">
@@ -294,8 +293,7 @@ export const ApiKeyManager = ({
                         <select
                           value={selectedModel || ''}
                           onChange={(e) => onModelSelect(e.target.value)}
-                          className="w-full p-2 rounded-lg border bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-primary z-50"
-                          style={{ backgroundColor: 'var(--background)', zIndex: 50 }}
+                          className="w-full p-2 rounded-lg border bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-primary relative z-[9998]"
                         >
                           <option value="">Select a model...</option>
                           {availableModels

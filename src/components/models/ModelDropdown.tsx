@@ -71,13 +71,17 @@ export function ModelDropdown({
   return (
     <div className={cn("space-y-2", className)}>
       <Select value={selectedModel} onValueChange={onModelSelect}>
-        <SelectTrigger className="bg-background border-border z-50" style={{ backgroundColor: 'var(--background)', zIndex: 50 }}>
+        <SelectTrigger className="bg-background border-border min-h-[40px]">
           <SelectValue placeholder={
             isLoading ? "Loading models..." : "Select model"
           } />
           {isLoading && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
         </SelectTrigger>
-        <SelectContent className="bg-background border-border z-50 max-h-60 overflow-y-auto" style={{ backgroundColor: 'var(--background)', zIndex: 50 }}>
+        <SelectContent 
+          className="bg-background border-border max-h-[300px] overflow-y-auto z-[9999]" 
+          position="popper"
+          sideOffset={4}
+        >
           {filteredModels.map((model) => (
             <SelectItem key={model.id} value={model.id} className="cursor-pointer">
               <div className="flex items-center justify-between w-full">

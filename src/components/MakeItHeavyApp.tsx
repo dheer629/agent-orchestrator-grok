@@ -201,30 +201,33 @@ export const MakeItHeavyApp = () => {
         description: "Multi-agent orchestration is running...",
       });
       
-      // Simulate agent progression
-      const agents = [
-        { id: 'analyzer', name: 'Content Analyzer', progress: 0 },
-        { id: 'researcher', name: 'Research Agent', progress: 0 },
-        { id: 'synthesizer', name: 'Response Synthesizer', progress: 0 }
+      // Simulate agent progression - use all 4 default agents
+      const simulationAgents = [
+        { id: '1', name: 'Research Analyst', progress: 0 },
+        { id: '2', name: 'Critical Evaluator', progress: 0 },
+        { id: '3', name: 'Creative Synthesizer', progress: 0 },
+        { id: '4', name: 'Domain Expert', progress: 0 }
       ];
 
       let currentAgent = 0;
       const progressInterval = setInterval(() => {
-        if (currentAgent < agents.length) {
+        if (currentAgent < simulationAgents.length) {
           setAgents(prev => prev.map((agent, index) => {
             if (index === currentAgent) {
-              const newProgress = Math.min(agent.progress + 20, 100);
+              const newProgress = Math.min(agent.progress + 15, 100);
               return {
                 ...agent,
                 progress: newProgress,
-                state: newProgress === 100 ? "complete" : "running" as const
+                state: newProgress === 100 ? "complete" : "running" as const,
+                output: newProgress > 50 ? `Processing ${agent.name}... ${newProgress}% complete` : undefined
               };
             }
             return agent;
           }));
 
-          // Move to next agent when current one is done
-          if (agents[currentAgent].progress >= 80) {
+          // Move to next agent when current one reaches 80%
+          const currentAgentProgress = agents.find((_, idx) => idx === currentAgent)?.progress || 0;
+          if (currentAgentProgress >= 80) {
             currentAgent++;
           }
         } else {
@@ -235,26 +238,32 @@ export const MakeItHeavyApp = () => {
             totalTime: 3500,
             agentResults: [
               {
-                agentId: 'analyzer',
-                agentName: 'Content Analyzer',
-                content: `Analysis complete for: "${query}". The query has been processed and analyzed for key themes and requirements.`,
+                agentId: '1',
+                agentName: 'Research Analyst',
+                content: `Research phase completed for: "${query}". Comprehensive data analysis and information gathering finished.`,
                 metadata: { processingTime: 1200, tokensUsed: 450 }
               },
               {
-                agentId: 'researcher',
-                agentName: 'Research Agent',
-                content: 'Research phase completed. Gathered relevant information and context for the analysis.',
-                metadata: { processingTime: 1500, tokensUsed: 680 }
+                agentId: '2',
+                agentName: 'Critical Evaluator',
+                content: 'Critical evaluation complete. All findings have been thoroughly reviewed and validated for accuracy.',
+                metadata: { processingTime: 1100, tokensUsed: 520 }
               },
               {
-                agentId: 'synthesizer',
-                agentName: 'Response Synthesizer',
-                content: 'Final synthesis complete. All agent outputs have been consolidated into a comprehensive response.',
-                metadata: { processingTime: 800, tokensUsed: 320 }
+                agentId: '3',
+                agentName: 'Creative Synthesizer',
+                content: 'Creative synthesis phase complete. Innovative solutions and creative approaches have been developed.',
+                metadata: { processingTime: 1300, tokensUsed: 680 }
+              },
+              {
+                agentId: '4',
+                agentName: 'Domain Expert',
+                content: 'Domain expertise analysis complete. Specialized knowledge and expert insights have been integrated.',
+                metadata: { processingTime: 900, tokensUsed: 400 }
               }
             ],
             metadata: { 
-              totalTokens: 1450, 
+              totalTokens: 2050, 
               selectedModel,
               systemPrompt: systemPrompt || 'Default system prompt'
             }
@@ -265,7 +274,7 @@ export const MakeItHeavyApp = () => {
             description: "Multi-agent orchestration finished successfully!",
           });
         }
-      }, 500);
+      }, 400);
       
     } catch (error) {
       console.error('Failed to start orchestration:', error);
